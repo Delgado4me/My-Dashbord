@@ -36,6 +36,7 @@
   let mailRows=[],mailFilter='inbox',mailNext='',mailLoading=false,mailLoaded=false,mailError='',mailRequest=0;
   function resetMailbox(){++mailRequest;mailRows=[];mailNext='';mailLoading=false;mailLoaded=false;mailError=''}
   let pdfLibrary=null,pdfFont=null,mailPdfUrl='';
+  const obsidianDeferred=false; // Read-only Obsidian is enabled; Markdown export remains available.
   let files=[],favoritePaths=[],obsidianRequest=0,obsidianLoading=false,obsidianError='',favoriteError='',obsidianCheckedAt='',obsidianPartial=false,lastObsidianFetch=0;
   const priorities=['Скласти план на тиждень','Відповісти на важливий лист','Розібрати нові нотатки'];
   let dailyZone=Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC',dailyZoneReady=false,priorityDate='';
@@ -197,7 +198,7 @@
     finally{if(request===mailRequest){mailLoading=false;if(currentView===routeKey('mail'))renderView()}}
   }
   async function refreshObsidian(){
-    if(!signedIn||obsidianLoading)return;
+    if(obsidianDeferred||!signedIn||obsidianLoading)return;
     const sequence=++obsidianRequest,epoch=authEpoch;
     obsidianLoading=true;lastObsidianFetch=Date.now();renderFiles();
     $('refreshObsidian').disabled=true;if(currentView)renderView();
@@ -367,11 +368,12 @@
           (googleConnected?(mailLoading?'<p class="view-subtitle">Завантажуємо…</p>':mailNext?'<button type="button" class="mail-more secondary-action" data-mail-more>Показати ще листи</button>':mailError?'<button type="button" class="mail-more secondary-action" data-mail-retry>Спробувати ще раз</button>':''):'')};
     }
     if(section==='notes'){
-      return {subtitle:signedIn?'Особисті записи · Supabase':'Приклади на цьому пристрої',header:'<button type="button" data-action="new-note">+ Нова</button>',
+      return {subtitle:signedIn?'Особисті записи · Supabase':'Приклади на цьому пристрої',header:'<button type="button" data-action="new-note">+ Нова</button>'+(notes.length&&!sessionChecking&&!noteLoadError?'<button type="button" data-action="export-notes-md" aria-label="Зберегти всі нотатки у Markdown">↓ MD</button>':''),
         html:'<div class="notes-sources"><button type="button" class="active" data-open-section="notes" aria-pressed="true">Особисті записи</button><button type="button" data-open-section="obsidian">Obsidian</button></div>'+(noteLoadError?'<p class="view-error">'+esc(noteLoadError)+'</p>':'')+'<div class="view-list">'+(notes.length?notes.map(n=>'<button type="button" class="note-tile" data-note="'+esc(n.id)+'"><strong>'+esc(n.title)+'</strong><span>'+esc(n.body)+'</span><small>'+esc(n.date||'')+'</small></button>').join(''):viewMissing('Нотаток ще немає.'))+'</div>'};
     }
     if(section==='obsidian'){
       const sources='<div class="notes-sources"><button type="button" data-open-section="notes">Особисті записи</button><button type="button" class="active" data-open-section="obsidian" aria-pressed="true">Obsidian</button></div>';
+      if(obsidianDeferred)return {subtitle:'Тимчасове збереження в Markdown',html:sources+'<div class="view-card empty-list"><p>Підключення Obsidian відкладено. Записуйте в «Особисті записи» та зберігайте нотатки у .md для подальшого перенесення.</p><button type="button" class="primary-action" data-open-section="notes">Відкрити особисті записи</button></div>'};
       if(!signedIn)return {subtitle:'Останні нотатки з GitHub',html:sources+'<div class="view-card empty-list"><p>Увійдіть, щоб переглядати свої нотатки Obsidian.</p><button type="button" class="primary-action" data-action="sign-in">Увійти</button></div>'};
       const matches=f=>activeFilter==='all'||f.kind===activeFilter;
       const recent=files.filter(f=>!favoritePaths.includes(f.path)&&matches(f));
@@ -403,6 +405,13 @@
       return {subtitle:hint+' · '+esc(dailyZone),header:'<button type="button" data-daily-new="'+day+'">+ Справа</button>',html:controls+(error?'<p class="view-error">'+esc(dailyErrorText(new Error(error)))+' <button type="button" data-daily-retry="'+day+'">Повторити</button></p>':'')+(dailyLoading.has(day)&&!dailyDays.has(day)?'<div class="view-card empty-list">Завантажуємо справи…</div>':'<div class="view-card"><p class="daily-limit">До трьох справ на день</p>'+[1,2,3].map(n=>{const row=rows.find(r=>r.position===n);return row?dailyRow(row):'<button type="button" class="daily-empty-slot" data-daily-new="'+day+'">+ Додати справу '+n+'</button>'}).join('')+'</div>')+carry};
     }
     return {html:viewMissing()};
+  }
+  function noteMarkdown(note){return '# '+String(note.title||'Без назви').replace(/[\r\n]+/g,' ').trim()+'\n\n'+String(note.body||'')+'\n'}
+  function downloadMarkdown(items){
+    if(!items.length)return;
+    const name=items.length===1?String(items[0].title||'Нотатка').replace(/[\\/:*?"<>|\u0000-\u001f]/g,'-').trim().slice(0,80)||'Нотатка':'Мої-нотатки';
+    const content=items.map(noteMarkdown).join('\n---\n\n'),url=URL.createObjectURL(new Blob([content],{type:'text/markdown;charset=utf-8'}));
+    const link=document.createElement('a');link.href=url;link.download=name+'.md';document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);
   }
   function detailView(section,id){
     if(section==='birthdays'){
@@ -438,7 +447,7 @@
     }
     if(section==='notes'){
       const n=notes.find(x=>String(x.id)===id);
-      return n?{title:n.title,html:'<p class="meta">'+(signedIn?'НОТАТКА · SUPABASE':'НОТАТКА · ПРИКЛАД')+'</p><h2>'+esc(n.title)+'</h2><div class="preview">'+esc(n.body)+'</div>',actions:'<button type="button" class="primary-action" data-edit="'+esc(n.id)+'">Редагувати</button><button type="button" class="secondary-action" data-delete="'+esc(n.id)+'">Видалити</button>'}:null;
+      return n?{title:n.title,html:'<p class="meta">'+(signedIn?'НОТАТКА · SUPABASE':'НОТАТКА · ПРИКЛАД')+'</p><h2>'+esc(n.title)+'</h2><div class="preview">'+esc(n.body)+'</div>',actions:'<button type="button" class="primary-action" data-edit="'+esc(n.id)+'">Редагувати</button><button type="button" class="secondary-action" data-export-note="'+esc(n.id)+'">Зберегти .md</button><button type="button" class="secondary-action" data-delete="'+esc(n.id)+'">Видалити</button>'}:null;
     }
     if(section==='obsidian'){
       if(!safeObsidianPath(id))return null;
@@ -574,7 +583,7 @@
     showSheet('<p class="meta">ОСОБИСТІ НАЛАШТУВАННЯ</p><h2 id="sheetTitle">Ще</h2>'+
       '<section class="account-group"><h3>Поштові акаунти</h3>'+googleAccount+'<p id="googleMessage" class="form-error" hidden></p></section>'+
       '<section class="account-group"><h3>Особисті записи</h3><p>'+(sessionRestoreError?esc(sessionRestoreError):signedIn?'Supabase підключено · нотатки й нагадування зберігаються між пристроями.':sessionChecking?'Перевіряємо особистий вхід…':'Демо-режим · особисті записи доступні після входу.')+'</p><button type="button" class="secondary-action" data-action="'+(signedIn?'sign-out':'sign-in')+'"'+(sessionChecking?' disabled':'')+'>'+(signedIn?'Вийти із Supabase':'Увійти в Supabase')+'</button></section>'+
-      '<section class="account-group"><h3>Obsidian</h3><p>'+(!signedIn?'Доступний після особистого входу.':obsidianLoading?'Перевіряємо нотатки…':obsidianError?esc(obsidianError):obsidianCheckedAt?'Підключено · перевірено '+esc(new Date(obsidianCheckedAt).toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'})):'Очікує перевірки.')+'</p><button type="button" class="secondary-action" data-action="open-obsidian">Останні нотатки</button></section>'+
+      '<section class="account-group"><h3>Obsidian</h3><p>'+(obsidianDeferred?'Тимчасово: особисті записи та експорт .md.':!signedIn?'Доступний після особистого входу.':obsidianLoading?'Перевіряємо нотатки…':obsidianError?esc(obsidianError):obsidianCheckedAt?'Підключено · перевірено '+esc(new Date(obsidianCheckedAt).toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'})):'Очікує перевірки.')+'</p><button type="button" class="secondary-action" data-action="open-obsidian">Останні нотатки</button></section>'+
       '<section class="account-group"><h3>Сховище</h3><button type="button" class="secondary-action" data-action="connection-settings">Налаштування підключення</button></section>'+
       '<section class="account-group"><h3>Календар</h3><button type="button" class="secondary-action" data-action="manage-birthdays">Дні народження</button></section>'+
       '<section class="account-group"><h3>Нагадування</h3><button type="button" class="secondary-action" data-action="manage-reminders">Керувати нагадуваннями</button></section>');
@@ -689,6 +698,8 @@
     if(b.dataset.delete){if(!confirm('Видалити цю нотатку?'))return;const epoch=authEpoch;b.disabled=true;try{if(signedIn)await backend.deleteNote(b.dataset.delete);if(epoch!==authEpoch)return;notes=notes.filter(n=>n.id!==b.dataset.delete);if(!signedIn)save('notes',notes);renderNotes();closeSheet(true);if(currentView){history.replaceState({dashboardView:true,parent:'home'},'',routeKey('notes'));renderView()}}catch(error){if(epoch!==authEpoch)return;b.disabled=false;alert('Не вдалося видалити нотатку: '+error.message)}return}
     if(b.dataset.action==='manage-reminders'){if(!$('sheetBackdrop').hidden)closeSheet();openView('reminders','','',b);return}
     if(b.dataset.action==='manage-birthdays'){if(!$('sheetBackdrop').hidden)closeSheet();openView('birthdays','','',b);return}
+    if(b.dataset.exportNote){const note=notes.find(n=>String(n.id)===b.dataset.exportNote);if(note)downloadMarkdown([note]);return}
+    if(b.dataset.action==='export-notes-md'){if(!sessionChecking&&!noteLoadError)downloadMarkdown(notes);return}
     if(b.dataset.action==='new-note'){editNote(null);return}
     if(b.dataset.action==='new-reminder'){editReminder();return}
     if(b.dataset.action==='mail-reminder'){mailReminderDraft();return}

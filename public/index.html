@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f6f8ff">
+  <meta name="description" content="Мій день — мобільний прототип особистого дашборда">
+  <title>Мій день</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <svg class="sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 10h18"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 8-3 9h18c0-1-3-2-3-9ZM10 21h4"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M5 2h9l5 5v15H5zM14 2v5h5M8 12h8M8 16h8"/></symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m3 6 9 7 9-7"/></symbol>
+    <symbol id="i-mail-open" viewBox="0 0 24 24"><path d="m2 10 10-7 10 7v11H2zM2 10l10 8 10-8M2 21l7-6m13 6-7-6"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 2 3.1 6.4 7.1 1-5.1 5 .9 7-6-3.3-6 3.3.9-7-5.1-5 7.1-1z"/></symbol>
+    <symbol id="i-archive" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v12h14V9M9 14h6"/></symbol>
+    <symbol id="i-note" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="m3 11 9-8 9 8v10h-7v-7h-4v7H3z"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 4v16M4 12h16"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+    <symbol id="i-filter" viewBox="0 0 24 24"><path d="M3 5h18M6 12h12m-9 7h6"/></symbol>
+    <symbol id="i-rotate" viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.7 9A7 7 0 0 1 18 7l2 5M4 12l2 5a7 7 0 0 0 12.3-2"/></symbol>
+  </svg>
+
+  <main class="app" id="home">
+    <aside id="connectionBanner" class="connection-banner" aria-label="Особистий вхід"><p id="connectionStatus">Підключіть сховище, щоб бачити свої дані.</p><button type="button" id="connectionAction" class="primary-action" data-action="connection-settings">Налаштувати</button></aside>
+    <section id="today" class="card today-card" aria-labelledby="todayTitle">
+      <div class="card-head"><div class="head-title"><div><h2 id="todayTitle">Сьогодні</h2><span class="subheading" id="selectedDateLabel"></span></div></div><button type="button" class="home-add" data-action="calendar-new">+ Запис</button></div>
+      <p id="calendarError" class="sync-error" role="status" hidden></p><div id="events" class="events" aria-live="polite"></div>
+      <button type="button" class="home-all-day" data-open-section="today">Весь день <svg><use href="#i-arrow"/></svg></button>
+    </section>
+
+    <section id="priorities" class="card" aria-labelledby="priorityTitle" hidden><div class="card-head"><div class="head-title"><span class="icon-box violet"><svg><use href="#i-check"/></svg></span><div><h2 id="priorityTitle">Мої пріоритети</h2><span class="subheading" id="prioritySubheading">На цей день · приклади</span></div></div><button type="button" class="link-btn" data-open-section="priorities">Відкрити ›</button></div><div id="prioritiesList" class="priority-list"></div></section>
+
+    <section id="obsidian" class="card" aria-labelledby="obsidianTitle" hidden><div class="card-head"><div class="head-title"><span class="icon-box purple"><span class="obsidian-gem">◆</span></span><div><h2 id="obsidianTitle">Obsidian</h2><span class="subheading" id="obsidianSubheading">Останні зміни · GitHub</span></div></div><button type="button" id="refreshObsidian" class="refresh-btn" aria-label="Оновити зміни Obsidian" title="Оновити зміни Obsidian" hidden>↻</button><button type="button" class="link-btn" data-open-section="obsidian">Останні зміни ›</button></div><p id="obsidianError" class="sync-error" role="status" hidden></p><div id="pinnedSection" hidden><h3 class="favorites-title">★ Фаворити</h3><div id="pinnedFiles" class="file-list"></div></div><div class="filters" aria-label="Фільтр останніх змін Obsidian"><button type="button" class="chip active" data-filter="all" aria-pressed="true">Усі</button><button type="button" class="chip" data-filter="added" aria-pressed="false">Додані</button><button type="button" class="chip" data-filter="edited" aria-pressed="false">Змінені</button></div><div id="files" class="file-list" aria-live="polite"></div></section>
+
+    <section id="mail" class="card" aria-labelledby="mailTitle"><div class="card-head"><div class="head-title"><span class="icon-box blue"><svg><use href="#i-mail"/></svg></span><div><h2 id="mailTitle">Пошта</h2><span class="subheading" id="mailSubheading">Непрочитані · приклади</span></div></div><div class="mail-actions"><button type="button" id="refreshGoogle" class="refresh-btn" aria-label="Оновити пошту й календар" title="Оновити пошту й календар" hidden>↻</button><span class="count-pill" id="mailCount">6</span><button type="button" class="link-btn" data-open-section="mail">Всі листи ›</button></div></div><p id="mailError" class="sync-error" role="status" hidden></p><div id="mails" class="mail-list"></div></section>
+
+    <section id="notes" class="card notes-card" aria-labelledby="notesTitle" hidden><div class="card-head"><div class="head-title"><span class="icon-box amber"><svg><use href="#i-note"/></svg></span><div><h2 id="notesTitle">Нотатки</h2><span class="subheading" id="notesSubheading">Швидкі записи на цьому пристрої</span></div></div><div class="mail-actions"><button type="button" class="link-btn" data-open-section="notes">Всі нотатки ›</button><button type="button" id="addNote" class="icon-button" aria-label="Додати нотатку"><svg><use href="#i-plus"/></svg></button></div></div><div id="notesList" class="notes-list"></div></section>
+  </main>
+
+  <section class="view-shell" id="viewShell" role="dialog" aria-modal="true" aria-labelledby="viewTitle" hidden>
+    <header class="view-header"><button type="button" id="viewBack" class="view-back" aria-label="Назад">‹</button><h1 id="viewTitle"></h1><div id="viewHeaderAction"></div></header>
+    <div class="view-content" id="viewContent" tabindex="-1"></div>
+    <div class="view-actions" id="viewActions" hidden></div>
+  </section>
+
+  <nav class="bottom-nav" aria-label="Основна навігація"><button type="button" data-go="home" class="active"><svg><use href="#i-home"/></svg><span>Головна</span></button><button type="button" data-go="today"><svg><use href="#i-cal"/></svg><span>Календар</span></button><button type="button" data-go="reminders" id="remindersTab"><svg><use href="#i-bell"/></svg><span>Нагадування</span><b id="remindersBadge"></b></button><button type="button" data-go="notes"><svg><use href="#i-note"/></svg><span>Нотатки</span></button><button type="button" data-go="more"><svg><use href="#i-more"/></svg><span>Ще</span></button></nav>
+
+  <div class="sheet-backdrop" id="sheetBackdrop" hidden><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle"><div class="sheet-handle"></div><button type="button" id="closeSheet" class="close-sheet" aria-label="Закрити"><svg><use href="#i-close"/></svg></button><div id="sheetContent"></div></section></div>
+  <input type="date" id="dateInput" class="visually-hidden" aria-label="Вибрати дату">
+  <script src="./config.js" defer></script>
+  <script src="./backend.js" defer></script>
+  <script src="./mail-pdf.js" defer></script>
+  <script src="./app.js" defer></script>
+</body>
+</html>

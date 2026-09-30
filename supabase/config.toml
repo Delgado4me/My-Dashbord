@@ -1,0 +1,11 @@
+[functions.dashboard-google]
+entrypoint = "./functions/dashboard-google/index.js"
+verify_jwt = true
+
+[functions.dashboard-google-callback]
+entrypoint = "./functions/dashboard-google-callback/index.js"
+verify_jwt = false
+
+[functions.dashboard-obsidian]
+entrypoint = "./functions/dashboard-obsidian/index.js"
+verify_jwt = true

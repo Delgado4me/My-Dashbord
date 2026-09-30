@@ -6,6 +6,7 @@
 
 - [Налаштування входу, Gmail та Obsidian](docs/ПІДКЛЮЧЕННЯ.md)
 - [Перенесення в Lovable та стан перевірок](docs/LOVABLE.md)
+- [Дні народження та нагадування 5/3/0](docs/BIRTHDAYS.md)
 - [Тестова Markdown-нотатка](notes/Початок.md)
 - [Серверні параметри без секретів](supabase/functions/.env.example)
 

@@ -1,0 +1,18 @@
+--- a/public/app.js
++++ b/public/app.js
+@@ -839,10 +839,13 @@
+         if(form.elements.taskId.value&&!task)throw new Error('Справу не знайдено. Оновіть сторінку.');
+         const rows=await backend.listDailyTasks(day);if(epoch!==authEpoch)return;dailyDays.set(day,rows);
+         const slot=task?.day===day?task.position:nextDailySlot(rows),replacement=form.elements.replace?.value?rows.find(r=>r.id===form.elements.replace.value):null;
++        const sourceType=form.elements.sourceType.value||null,sourceKey=form.elements.sourceKey.value||null;
++        const existing=!task&&sourceKey?rows.find(r=>r.source_type===sourceType&&r.source_key===sourceKey):null;
+         let saved;
+-        if(task){if(!slot)throw new Error('Сьогодні вже три справи. Змініть одну або поставте нову на інший день.');saved=await updateDailyTask(task.id,{day,position:slot,timezone:dailyZone,title,details})}
++        if(existing){saved=existing}
++        else if(task){if(!slot)throw new Error('Сьогодні вже три справи. Змініть одну або поставте нову на інший день.');saved=await updateDailyTask(task.id,{day,position:slot,timezone:dailyZone,title,details})}
+         else if(replacement){if(!confirm('Замінити справу «'+replacement.title+'» новою?'))return;saved=await updateDailyTask(replacement.id,{title,details,is_complete:false,completed_at:null,source_type:form.elements.sourceType.value||null,source_key:form.elements.sourceKey.value||null,source_label:form.elements.sourceLabel.value||null})}
+-        else{if(!slot)throw new Error('Сьогодні вже три справи. Змініть одну або поставте нову на інший день.');const sourceType=form.elements.sourceType.value||null,sourceKey=form.elements.sourceKey.value||null;const existing=sourceKey&&rows.find(r=>r.source_type===sourceType&&r.source_key===sourceKey);if(existing)saved=existing;else{const first=form.elements.firstFocus.value==='true';saved=(await backend.addDailyTask({id:form.elements.draftId.value,day,timezone:dailyZone,position:slot,title,details,is_focus:first,source_type:sourceType,source_key:sourceKey,source_label:form.elements.sourceLabel.value||null}))[0]}}
++        else{if(!slot)throw new Error('Сьогодні вже три справи. Змініть одну або поставте нову на інший день.');const first=form.elements.firstFocus.value==='true';saved=(await backend.addDailyTask({id:form.elements.draftId.value,day,timezone:dailyZone,position:slot,title,details,is_focus:first,source_type:sourceType,source_key:sourceKey,source_label:form.elements.sourceLabel.value||null}))[0]}
+         if(!saved)throw new Error('Справу не збережено.');await syncDailyDay(day);if(task&&task.day!==day)await syncDailyDay(task.day);
+         if(epoch===authEpoch&&serial===sheetSerial){closeSheet(true);priorityDate=day;openView('priorities',saved.id,day)}
+       }catch(error){if(epoch===authEpoch&&serial===sheetSerial)inlineMessage('dailyTaskError',dailyErrorText(error))}
